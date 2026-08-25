@@ -53,6 +53,21 @@ test("rejects lexical traversal and symlink escapes", async () => {
   await assert.rejects(() => safeExistingPath(root, "escape.txt"), /outside repository root/);
 });
 
+test("canonicalizes an aliased repository root before enforcing containment", async () => {
+  const root = await fixture();
+  const aliasParent = await mkdtemp(path.join(tmpdir(), "pro-architect-alias-"));
+  const alias = path.join(aliasParent, "repo");
+  await symlink(root, alias, "dir");
+
+  const inspector = new RepositoryInspector(alias, DEFAULT_CONFIG);
+  const file = await inspector.readFile({ path: "src/app.js" });
+  assert.match(file.content, /return 42/);
+
+  await unlink(path.join(root, "src", "app.js"));
+  const diff = await inspector.gitDiff({ scope: "head", path: "src/app.js" });
+  assert.match(diff.diff, /deleted file mode/);
+});
+
 
 test("rejects Git metadata and ignored files", async () => {
   const root = await fixture();

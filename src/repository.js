@@ -215,19 +215,23 @@ async function nearestExistingRealPath(candidate) {
 }
 
 export async function safeExistingPath(root, relativePath) {
-  const lexical = lexicalRepositoryPath(root, relativePath);
+  const canonicalRoot = await realpath(root);
+  const lexical = lexicalRepositoryPath(canonicalRoot, relativePath);
   const resolved = await realpath(lexical);
-  if (!inside(root, resolved)) throw new Error(`Path resolves outside repository root: ${relativePath}`);
+  if (!inside(canonicalRoot, resolved)) {
+    throw new Error(`Path resolves outside repository root: ${relativePath}`);
+  }
   return resolved;
 }
 
 export async function safeGitPathspec(root, relativePath) {
-  const lexical = lexicalRepositoryPath(root, relativePath);
+  const canonicalRoot = await realpath(root);
+  const lexical = lexicalRepositoryPath(canonicalRoot, relativePath);
   const existingAncestor = await nearestExistingRealPath(lexical);
-  if (!inside(root, existingAncestor)) {
+  if (!inside(canonicalRoot, existingAncestor)) {
     throw new Error(`Path resolves outside repository root: ${relativePath}`);
   }
-  return path.relative(root, lexical) || ".";
+  return path.relative(canonicalRoot, lexical) || ".";
 }
 
 function truncate(text, maxChars) {
