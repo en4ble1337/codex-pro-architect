@@ -1,0 +1,119 @@
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index 82d01b2..1c5d62f 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -2,11 +2,11 @@ name: CI
+ 
+ on:
+   push:
+-    branches: [main, review/security-hardening]
++    branches: [main]
+   pull_request:
+ 
+ permissions:
+-  contents: write
++  contents: read
+ 
+ jobs:
+   test:
+@@ -25,40 +25,7 @@ jobs:
+       - name: Install
+         run: npm ci
+       - name: Validate
+-        shell: bash
+-        run: |
+-          set -o pipefail
+-          npm run ci 2>&1 | tee validation.log
+-      - name: Publish macOS failure diagnostic
+-        if: failure() && runner.os == 'macOS'
+-        shell: bash
+-        env:
+-          GH_TOKEN: ${{ github.token }}
+-          NODE_VERSION: ${{ matrix.node }}
+-        run: |
+-          set -euo pipefail
+-          work="$(mktemp -d)"
+-          cp validation.log "${work}/validation.log"
+-          {
+-            echo "runner.os=${RUNNER_OS}"
+-            echo "runner.arch=${RUNNER_ARCH}"
+-            echo "node=${NODE_VERSION}"
+-            sw_vers
+-            git --version
+-            node --version
+-            npm --version
+-          } > "${work}/environment.txt"
+-          cd "${work}"
+-          git init --initial-branch=main
+-          git config user.name "github-actions[bot]"
+-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+-          git add validation.log environment.txt
+-          git commit -m "ci: capture hardening macOS Node ${NODE_VERSION} failure"
+-          auth="$(printf 'x-access-token:%s' "${GH_TOKEN}" | base64 | tr -d '\n')"
+-          git -c http.extraheader="AUTHORIZATION: basic ${auth}" \
+-            push --force \
+-            "https://github.com/${GITHUB_REPOSITORY}.git" \
+-            HEAD:"ci-diagnostics-hardening-macos-node-${NODE_VERSION}"
++        run: npm run ci
+       - name: Package manifest
+         run: npm run pack:dry
+       - name: Audit production dependencies
+diff --git a/src/repository.js b/src/repository.js
+index f55be12..96bc0d6 100644
+--- a/src/repository.js
++++ b/src/repository.js
+@@ -215,19 +215,23 @@ async function nearestExistingRealPath(candidate) {
+ }
+ 
+ export async function safeExistingPath(root, relativePath) {
+-  const lexical = lexicalRepositoryPath(root, relativePath);
++  const canonicalRoot = await realpath(root);
++  const lexical = lexicalRepositoryPath(canonicalRoot, relativePath);
+   const resolved = await realpath(lexical);
+-  if (!inside(root, resolved)) throw new Error(`Path resolves outside repository root: ${relativePath}`);
++  if (!inside(canonicalRoot, resolved)) {
++    throw new Error(`Path resolves outside repository root: ${relativePath}`);
++  }
+   return resolved;
+ }
+ 
+ export async function safeGitPathspec(root, relativePath) {
+-  const lexical = lexicalRepositoryPath(root, relativePath);
++  const canonicalRoot = await realpath(root);
++  const lexical = lexicalRepositoryPath(canonicalRoot, relativePath);
+   const existingAncestor = await nearestExistingRealPath(lexical);
+-  if (!inside(root, existingAncestor)) {
++  if (!inside(canonicalRoot, existingAncestor)) {
+     throw new Error(`Path resolves outside repository root: ${relativePath}`);
+   }
+-  return path.relative(root, lexical) || ".";
++  return path.relative(canonicalRoot, lexical) || ".";
+ }
+ 
+ function truncate(text, maxChars) {
+diff --git a/tests/repository.test.js b/tests/repository.test.js
+index 9e62f76..bb9b0da 100644
+--- a/tests/repository.test.js
++++ b/tests/repository.test.js
+@@ -53,6 +53,21 @@ test("rejects lexical traversal and symlink escapes", async () => {
+   await assert.rejects(() => safeExistingPath(root, "escape.txt"), /outside repository root/);
+ });
+ 
++test("canonicalizes an aliased repository root before enforcing containment", async () => {
++  const root = await fixture();
++  const aliasParent = await mkdtemp(path.join(tmpdir(), "pro-architect-alias-"));
++  const alias = path.join(aliasParent, "repo");
++  await symlink(root, alias, "dir");
++
++  const inspector = new RepositoryInspector(alias, DEFAULT_CONFIG);
++  const file = await inspector.readFile({ path: "src/app.js" });
++  assert.match(file.content, /return 42/);
++
++  await unlink(path.join(root, "src", "app.js"));
++  const diff = await inspector.gitDiff({ scope: "head", path: "src/app.js" });
++  assert.match(diff.diff, /deleted file mode/);
++});
++
+ 
+ test("rejects Git metadata and ignored files", async () => {
+   const root = await fixture();
