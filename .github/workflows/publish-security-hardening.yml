@@ -22,7 +22,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cat bootstrap/hardening.part00 \
+          cat bootstrap/hardening.part00a \
+              bootstrap/hardening.part00b \
               bootstrap/hardening.part01 \
               bootstrap/hardening.part02 \
               bootstrap/hardening.part03 \
