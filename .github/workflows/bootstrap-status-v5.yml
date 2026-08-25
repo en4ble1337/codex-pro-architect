@@ -1,0 +1,52 @@
+name: Record Codex Pro Architect Alpha V5 Status
+
+on:
+  workflow_run:
+    workflows: ["Complete Codex Pro Architect Alpha Bootstrap V5"]
+    types: [completed]
+
+permissions:
+  contents: write
+
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Persist final controller result
+        env:
+          CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          RUN_URL: ${{ github.event.workflow_run.html_url }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          COMPLETED_AT: ${{ github.event.workflow_run.updated_at }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git checkout -B main origin/main
+          mkdir -p docs
+          if [ "$CONCLUSION" = "success" ]; then
+            test -f package.json
+            test -f docs/RELEASE-VERIFICATION.md
+            test -f tests/mcp-cancellation.test.js
+          fi
+          cat > docs/BOOTSTRAP-STATUS.md <<EOF
+          # Codex Pro Architect Alpha Bootstrap Status
+
+          **Conclusion:** \`$CONCLUSION\`  
+          **Controller run:** [$RUN_ID]($RUN_URL)  
+          **Controller head SHA:** \`$HEAD_SHA\`  
+          **Completed:** $COMPLETED_AT
+
+          A \`success\` conclusion means the exact source SHA passed Node.js 20 and 22 on Ubuntu and macOS, including Launchpad verification, the complete Node test suite, encrypted-reasoning continuation, active MCP cancellation, audit, dependency inspection, and packed global-install/MCP smoke; the exact tested source was merged and \`main\` was verified again.
+          EOF
+          rm -f .github/workflows/bootstrap-status-v5.yml
+          git add -A
+          git diff --cached --check
+          git commit -m "docs(release): record root-explicit alpha result"
+          git push origin main
