@@ -24,6 +24,7 @@ jobs:
           set -euo pipefail
           echo "ab8fed7b2f27edbb0a6f02e2dff472fc56cf998697fbbf1b18969a557c005755  bootstrap/macos-portability.patch" \
             | sha256sum --check --strict
+          cp bootstrap/macos-portability.patch /tmp/macos-portability.patch
 
       - name: Apply and validate code fix
         shell: bash
@@ -32,8 +33,8 @@ jobs:
           git fetch origin review/security-hardening
           git switch --detach origin/review/security-hardening
           git switch -c review/security-hardening
-          git apply --check --exclude=.github/workflows/ci.yml bootstrap/macos-portability.patch
-          git apply --exclude=.github/workflows/ci.yml bootstrap/macos-portability.patch
+          git apply --check --exclude=.github/workflows/ci.yml /tmp/macos-portability.patch
+          git apply --exclude=.github/workflows/ci.yml /tmp/macos-portability.patch
           npm ci
           npm run ci
           npm run pack:dry
