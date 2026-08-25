@@ -1,0 +1,212 @@
+
+> codex-pro-architect@0.1.1 ci
+> npm run check && npm test
+
+
+> codex-pro-architect@0.1.1 check
+> node scripts/check.js
+
+Syntax check passed for 21 JavaScript files.
+
+> codex-pro-architect@0.1.1 test
+> node --test
+
+TAP version 13
+# Subtest: runs a Responses API function-call loop and returns a metered plan
+ok 1 - runs a Responses API function-call loop and returns a metered plan
+  ---
+  duration_ms: 136.902583
+  ...
+# Subtest: accepts the default configuration
+ok 2 - accepts the default configuration
+  ---
+  duration_ms: 1.222
+  ...
+# Subtest: rejects fractional values for integer limits
+ok 3 - rejects fractional values for integer limits
+  ---
+  duration_ms: 0.311084
+  ...
+# Subtest: restricts the alpha to GPT-5.6 Sol pricing-compatible model aliases
+ok 4 - restricts the alpha to GPT-5.6 Sol pricing-compatible model aliases
+  ---
+  duration_ms: 0.208375
+  ...
+# Subtest: patches an existing MCP section without changing adjacent sections
+ok 5 - patches an existing MCP section without changing adjacent sections
+  ---
+  duration_ms: 1.176041
+  ...
+# Subtest: supports a quoted MCP server table
+ok 6 - supports a quoted MCP server table
+  ---
+  duration_ms: 0.095917
+  ...
+# Subtest: fails closed when the expected MCP section is absent
+ok 7 - fails closed when the expected MCP section is absent
+  ---
+  duration_ms: 0.214875
+  ...
+# Subtest: patching is idempotent and settings remain machine-readable
+ok 8 - patching is idempotent and settings remain machine-readable
+  ---
+  duration_ms: 0.679083
+  ...
+# Subtest: preserves inline comments while replacing policy values
+ok 9 - preserves inline comments while replacing policy values
+  ---
+  duration_ms: 0.204125
+  ...
+# Subtest: exposes explicit billable architect tools and a free status tool
+ok 10 - exposes explicit billable architect tools and a free status tool
+  ---
+  duration_ms: 1.0615
+  ...
+# Subtest: validates MCP tool arguments before any paid work
+ok 11 - validates MCP tool arguments before any paid work
+  ---
+  duration_ms: 1.123875
+  ...
+# Subtest: serves initialize, ping, tools/list, and parse errors over stdio
+ok 12 - serves initialize, ping, tools/list, and parse errors over stdio
+  ---
+  duration_ms: 47.016875
+  ...
+# Subtest: negotiates the Codex legacy MCP protocol and rejects oversized JSON-RPC input
+ok 13 - negotiates the Codex legacy MCP protocol and rejects oversized JSON-RPC input
+  ---
+  duration_ms: 860.789375
+  ...
+# Subtest: cancels an active paid tool call and keeps stdout JSON-RPC clean
+ok 14 - cancels an active paid tool call and keeps stdout JSON-RPC clean
+  ---
+  duration_ms: 131.115375
+  ...
+# Subtest: normalizes replayable response output without dropping encrypted reasoning
+ok 15 - normalizes replayable response output without dropping encrypted reasoning
+  ---
+  duration_ms: 1.391167
+  ...
+# Subtest: fails closed when the Responses API returns a non-completed status
+ok 16 - fails closed when the Responses API returns a non-completed status
+  ---
+  duration_ms: 43.832167
+  ...
+# Subtest: removes provider credentials and generic secret variables from child processes
+ok 17 - removes provider credentials and generic secret variables from child processes
+  ---
+  duration_ms: 45.984125
+  ...
+# Subtest: inspects a repository with read-only bounded tools
+ok 18 - inspects a repository with read-only bounded tools
+  ---
+  duration_ms: 146.321792
+  ...
+# Subtest: rejects lexical traversal and symlink escapes
+ok 19 - rejects lexical traversal and symlink escapes
+  ---
+  duration_ms: 63.683042
+  ...
+# Subtest: rejects Git metadata and ignored files
+ok 20 - rejects Git metadata and ignored files
+  ---
+  duration_ms: 74.830458
+  ...
+# Subtest: can scope diffs and history to a deleted tracked file
+not ok 21 - can scope diffs and history to a deleted tracked file
+  ---
+  duration_ms: 66.413209
+  location: '/Users/runner/work/codex-pro-architect/codex-pro-architect/tests/repository.test.js:68:1'
+  failureType: 'testCodeFailure'
+  error: 'Path resolves outside repository root: src/app.js'
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    safeGitPathspec (file:///Users/runner/work/codex-pro-architect/codex-pro-architect/src/repository.js:228:11)
+    async RepositoryInspector.gitDiff (file:///Users/runner/work/codex-pro-architect/codex-pro-architect/src/repository.js:529:16)
+    async TestContext.<anonymous> (file:///Users/runner/work/codex-pro-architect/codex-pro-architect/tests/repository.test.js:73:16)
+    async Test.run (node:internal/test_runner/test:797:9)
+    async Test.processPendingSubtests (node:internal/test_runner/test:526:7)
+  ...
+# Subtest: tracked secret paths are denied across tree, read, search, status, diff, and show while templates remain visible
+not ok 22 - tracked secret paths are denied across tree, read, search, status, diff, and show while templates remain visible
+  ---
+  duration_ms: 115.685334
+  location: '/Users/runner/work/codex-pro-architect/codex-pro-architect/tests/repository.test.js:81:1'
+  failureType: 'testCodeFailure'
+  error: 'Path resolves outside repository root: .env.example'
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    safeGitPathspec (file:///Users/runner/work/codex-pro-architect/codex-pro-architect/src/repository.js:228:11)
+    async RepositoryInspector.inspectablePath (file:///Users/runner/work/codex-pro-architect/codex-pro-architect/src/repository.js:338:22)
+    async RepositoryInspector.readFile (file:///Users/runner/work/codex-pro-architect/codex-pro-architect/src/repository.js:386:5)
+    async TestContext.<anonymous> (file:///Users/runner/work/codex-pro-architect/codex-pro-architect/tests/repository.test.js:101:20)
+    async Test.run (node:internal/test_runner/test:797:9)
+    async Test.processPendingSubtests (node:internal/test_runner/test:526:7)
+  ...
+# Subtest: sensitive key and credential path families are rejected even when tracked
+ok 23 - sensitive key and credential path families are rejected even when tracked
+  ---
+  duration_ms: 130.010042
+  ...
+# Subtest: rejects invalid inner repository tool arguments
+ok 24 - rejects invalid inner repository tool arguments
+  ---
+  duration_ms: 53.630584
+  ...
+# Subtest: neutralizes repository-configured Git execution hooks
+ok 25 - neutralizes repository-configured Git execution hooks
+  ---
+  duration_ms: 89.357833
+  ...
+# Subtest: handles unusual filenames without bypassing sensitive-path filtering
+not ok 26 - handles unusual filenames without bypassing sensitive-path filtering
+  ---
+  duration_ms: 111.707667
+  location: '/Users/runner/work/codex-pro-architect/codex-pro-architect/tests/repository.test.js:173:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Path resolves outside repository root: odd
+    name.txt
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    safeGitPathspec (file:///Users/runner/work/codex-pro-architect/codex-pro-architect/src/repository.js:228:11)
+    async RepositoryInspector.inspectablePath (file:///Users/runner/work/codex-pro-architect/codex-pro-architect/src/repository.js:338:22)
+    async RepositoryInspector.readFile (file:///Users/runner/work/codex-pro-architect/codex-pro-architect/src/repository.js:386:5)
+    async TestContext.<anonymous> (file:///Users/runner/work/codex-pro-architect/codex-pro-architect/tests/repository.test.js:189:17)
+    async Test.run (node:internal/test_runner/test:797:9)
+    async Test.processPendingSubtests (node:internal/test_runner/test:526:7)
+  ...
+# Subtest: estimates cached, cache-write, uncached, and output token cost
+ok 27 - estimates cached, cache-write, uncached, and output token cost
+  ---
+  duration_ms: 0.830667
+  ...
+# Subtest: uses standard rates below the long-context threshold
+ok 28 - uses standard rates below the long-context threshold
+  ---
+  duration_ms: 0.526375
+  ...
+# Subtest: accumulates request usage across a tool loop
+ok 29 - accumulates request usage across a tool loop
+  ---
+  duration_ms: 0.1365
+  ...
+# Subtest: skips malformed JSONL records while retaining valid usage
+ok 30 - skips malformed JSONL records while retaining valid usage
+  ---
+  duration_ms: 0.617
+  ...
+# Subtest: repairs usage directory and ledger permissions
+ok 31 - repairs usage directory and ledger permissions
+  ---
+  duration_ms: 6.299667
+  ...
+1..31
+# tests 31
+# suites 0
+# pass 28
+# fail 3
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 6101.824084

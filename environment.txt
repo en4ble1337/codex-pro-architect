@@ -1,0 +1,9 @@
+runner.os=macOS
+runner.arch=ARM64
+node=20
+ProductName:		macOS
+ProductVersion:		26.5.2
+BuildVersion:		25F84
+git version 2.55.0
+v20.20.2
+10.8.2
