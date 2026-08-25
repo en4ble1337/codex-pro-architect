@@ -1,0 +1,84 @@
+name: Release Alpha Gate
+
+on:
+  push:
+    branches: [launchpad-bootstrap]
+
+permissions:
+  contents: write
+  pull-requests: write
+  checks: read
+
+jobs:
+  validate:
+    name: Node ${{ matrix.node }} / ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        node: [20, 22]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - run: python3 setup_launchpad.py --check
+      - run: python3 execution/verify_setup.py
+      - run: npm run ci
+      - run: npm run smoke:package
+      - run: npm run pack:dry
+      - run: npm audit --omit=dev
+      - run: npm ls --omit=dev
+
+  release:
+    needs: validate
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/launchpad-bootstrap'
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Enforce independent-review release gate
+        run: |
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          text = Path('docs/SECOND-AGENT-REVIEW.md').read_text()
+          for title in ('Critical Findings', 'Important Findings'):
+              match = re.search(rf'^## {re.escape(title)}\s*\n(.*?)(?=^## |\Z)', text, re.M | re.S)
+              if not match:
+                  raise SystemExit(f'missing {title}')
+              body = match.group(1).strip()
+              if body not in {'None.', 'None', '- None.'}:
+                  raise SystemExit(f'unresolved {title}:\n{body}')
+          PY
+      - name: Create or locate release pull request
+        id: pr
+        run: |
+          pr=$(gh pr list --repo "$GITHUB_REPOSITORY" --head launchpad-bootstrap --base main --state open --json number --jq '.[0].number // empty')
+          if [ -z "$pr" ]; then
+            pr=$(gh pr create --repo "$GITHUB_REPOSITORY" --base main --head launchpad-bootstrap --title "feat: publish Codex Pro Architect alpha" --body $'## Summary\n\nPublishes the Launchpad-governed public alpha of Codex Pro Architect.\n\n- explicit `$pro-architect` Codex skill\n- official Responses API / GPT-5.6 Pro specialist\n- stateless encrypted-reasoning replay\n- bounded read-only repository tools\n- cost accounting and guardrails\n- clean package/install smoke\n- independent release review\n\nNo live paid Pro request was executed in CI.\n\nRefs: directive-003' --json number --jq '.number')
+          fi
+          echo "number=$pr" >> "$GITHUB_OUTPUT"
+      - name: Confirm exact tested PR head
+        run: |
+          head=$(gh pr view "${{ steps.pr.outputs.number }}" --repo "$GITHUB_REPOSITORY" --json headRefOid --jq '.headRefOid')
+          test "$head" = "$GITHUB_SHA"
+      - name: Squash merge exact tested commit
+        run: |
+          gh api --method PUT "repos/$GITHUB_REPOSITORY/pulls/${{ steps.pr.outputs.number }}/merge" \
+            -f merge_method=squash \
+            -f sha="$GITHUB_SHA" \
+            -f commit_title="feat: publish Codex Pro Architect alpha" \
+            -f commit_message="Launchpad-governed public alpha with independent review and complete release gate."
