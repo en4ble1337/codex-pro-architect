@@ -1,0 +1,49 @@
+name: Publish Alpha Bootstrap Status
+
+on:
+  workflow_run:
+    workflows: ["Complete Codex Pro Architect Alpha Bootstrap V2"]
+    types: [completed]
+
+permissions:
+  contents: write
+
+jobs:
+  status:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Write workflow result
+        env:
+          CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          RUN_URL: ${{ github.event.workflow_run.html_url }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          COMPLETED_AT: ${{ github.event.workflow_run.updated_at }}
+        run: |
+          mkdir -p docs
+          if [ "$CONCLUSION" = "success" ]; then
+            test -f package.json
+            test -f docs/RELEASE-VERIFICATION.md
+          fi
+          cat > docs/BOOTSTRAP-STATUS.md <<EOF
+          # Codex Pro Architect Alpha Bootstrap Status
+
+          **Conclusion:** \`$CONCLUSION\`  
+          **Controller run:** [$RUN_ID]($RUN_URL)  
+          **Controller head SHA:** \`$HEAD_SHA\`  
+          **Completed:** $COMPLETED_AT
+
+          A \`success\` conclusion means the source was materialized, the exact source SHA passed Node.js 20/22 on Ubuntu and macOS, the independently reviewed PR was merged, and the resulting \`main\` branch passed Launchpad, Node tests, audit, and packed-install/MCP smoke verification again.
+          EOF
+      - name: Commit status record
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/BOOTSTRAP-STATUS.md
+          git diff --cached --check
+          git commit -m "docs(release): record alpha bootstrap result"
+          git push origin main
