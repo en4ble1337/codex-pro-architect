@@ -56,10 +56,11 @@ async function readJson(file) {
   }
 }
 
-function number(value, fallback, name, { min = 0, max = Number.MAX_SAFE_INTEGER } = {}) {
+function number(value, fallback, name, { min = 0, max = Number.MAX_SAFE_INTEGER, integer = false } = {}) {
   if (value === undefined || value === null) return fallback;
-  if (!Number.isFinite(value) || value < min || value > max) {
-    throw new Error(`Invalid config value for ${name}: expected a number from ${min} to ${max}`);
+  if (!Number.isFinite(value) || value < min || value > max || (integer && !Number.isInteger(value))) {
+    const type = integer ? "an integer" : "a number";
+    throw new Error(`Invalid config value for ${name}: expected ${type} from ${min} to ${max}`);
   }
   return value;
 }
@@ -75,7 +76,7 @@ function oneOf(value, fallback, name, choices) {
 export function normalizeConfig(input = {}) {
   const pricing = { ...DEFAULT_CONFIG.pricing, ...(input.pricing ?? {}) };
   return {
-    model: typeof input.model === "string" && input.model.trim() ? input.model.trim() : DEFAULT_CONFIG.model,
+    model: oneOf(input.model, DEFAULT_CONFIG.model, "model", ["gpt-5.6", "gpt-5.6-sol"]),
     reasoningMode: oneOf(input.reasoningMode, DEFAULT_CONFIG.reasoningMode, "reasoningMode", ["pro"]),
     reasoningEffort: oneOf(
       input.reasoningEffort,
@@ -83,15 +84,15 @@ export function normalizeConfig(input = {}) {
       "reasoningEffort",
       ["low", "medium", "high", "xhigh", "max"]
     ),
-    maxToolRounds: number(input.maxToolRounds, DEFAULT_CONFIG.maxToolRounds, "maxToolRounds", { min: 1, max: 100 }),
-    maxOutputTokens: number(input.maxOutputTokens, DEFAULT_CONFIG.maxOutputTokens, "maxOutputTokens", { min: 1_000, max: 128_000 }),
-    requestTimeoutMs: number(input.requestTimeoutMs, DEFAULT_CONFIG.requestTimeoutMs, "requestTimeoutMs", { min: 30_000, max: 60 * 60 * 1000 }),
+    maxToolRounds: number(input.maxToolRounds, DEFAULT_CONFIG.maxToolRounds, "maxToolRounds", { min: 1, max: 100, integer: true }),
+    maxOutputTokens: number(input.maxOutputTokens, DEFAULT_CONFIG.maxOutputTokens, "maxOutputTokens", { min: 1_000, max: 128_000, integer: true }),
+    requestTimeoutMs: number(input.requestTimeoutMs, DEFAULT_CONFIG.requestTimeoutMs, "requestTimeoutMs", { min: 30_000, max: 60 * 60 * 1000, integer: true }),
     maxRunCostUsd: number(input.maxRunCostUsd, DEFAULT_CONFIG.maxRunCostUsd, "maxRunCostUsd", { min: 0.01, max: 10_000 }),
-    maxFileBytes: number(input.maxFileBytes, DEFAULT_CONFIG.maxFileBytes, "maxFileBytes", { min: 1_024, max: 10 * 1024 * 1024 }),
-    maxReadLines: number(input.maxReadLines, DEFAULT_CONFIG.maxReadLines, "maxReadLines", { min: 10, max: 10_000 }),
-    maxSearchResults: number(input.maxSearchResults, DEFAULT_CONFIG.maxSearchResults, "maxSearchResults", { min: 1, max: 5_000 }),
-    maxTreeEntries: number(input.maxTreeEntries, DEFAULT_CONFIG.maxTreeEntries, "maxTreeEntries", { min: 10, max: 100_000 }),
-    maxToolOutputChars: number(input.maxToolOutputChars, DEFAULT_CONFIG.maxToolOutputChars, "maxToolOutputChars", { min: 1_000, max: 2_000_000 }),
+    maxFileBytes: number(input.maxFileBytes, DEFAULT_CONFIG.maxFileBytes, "maxFileBytes", { min: 1_024, max: 10 * 1024 * 1024, integer: true }),
+    maxReadLines: number(input.maxReadLines, DEFAULT_CONFIG.maxReadLines, "maxReadLines", { min: 10, max: 10_000, integer: true }),
+    maxSearchResults: number(input.maxSearchResults, DEFAULT_CONFIG.maxSearchResults, "maxSearchResults", { min: 1, max: 5_000, integer: true }),
+    maxTreeEntries: number(input.maxTreeEntries, DEFAULT_CONFIG.maxTreeEntries, "maxTreeEntries", { min: 10, max: 100_000, integer: true }),
+    maxToolOutputChars: number(input.maxToolOutputChars, DEFAULT_CONFIG.maxToolOutputChars, "maxToolOutputChars", { min: 1_000, max: 2_000_000, integer: true }),
     pricing: {
       effectiveDate: typeof pricing.effectiveDate === "string" ? pricing.effectiveDate : DEFAULT_CONFIG.pricing.effectiveDate,
       inputPerMillion: number(pricing.inputPerMillion, DEFAULT_CONFIG.pricing.inputPerMillion, "pricing.inputPerMillion"),
@@ -106,7 +107,8 @@ export function normalizeConfig(input = {}) {
       longContextThresholdTokens: number(
         pricing.longContextThresholdTokens,
         DEFAULT_CONFIG.pricing.longContextThresholdTokens,
-        "pricing.longContextThresholdTokens"
+        "pricing.longContextThresholdTokens",
+        { integer: true }
       ),
       longContextInputMultiplier: number(
         pricing.longContextInputMultiplier,

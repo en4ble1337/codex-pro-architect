@@ -36,7 +36,15 @@ test("runs a Responses API function-call loop and returns a metered plan", async
       response.end(
         JSON.stringify({
           id: "resp_1",
+          status: "completed",
           output: [
+            {
+              id: "rs_1",
+              type: "reasoning",
+              encrypted_content: "encrypted-reasoning-fixture",
+              created_by: "transport-only",
+              summary: []
+            },
             {
               id: "fc_1",
               type: "function_call",
@@ -61,6 +69,7 @@ test("runs a Responses API function-call loop and returns a metered plan", async
     response.end(
       JSON.stringify({
         id: "resp_2",
+        status: "completed",
         output: [
           {
             id: "msg_1",
@@ -119,6 +128,10 @@ test("runs a Responses API function-call loop and returns a metered plan", async
   assert.equal(requests[0].reasoning.effort, "medium");
   assert.equal(requests[0].reasoning.context, "all_turns");
   assert.equal(requests[0].store, false);
+  assert.deepEqual(requests[0].include, ["reasoning.encrypted_content"]);
+  const replayedReasoning = requests[1].input.find((item) => item.type === "reasoning");
+  assert.equal(replayedReasoning.encrypted_content, "encrypted-reasoning-fixture");
+  assert.equal(replayedReasoning.created_by, undefined);
   assert.equal(requests[1].input.at(-1).type, "function_call_output");
   assert.match(requests[1].input.at(-1).output, /README\.md/);
   assert.match(result.formatted, /# Architecture Plan/);
