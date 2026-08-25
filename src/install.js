@@ -40,15 +40,37 @@ export function codexConfigPath() {
   return path.join(codexHome, "config.toml");
 }
 
-export function patchMcpSection(text, serverName, settings) {
+function mcpSectionBounds(text, serverName) {
   const headers = [...text.matchAll(/^\s*\[([^\]]+)\]\s*$/gm)];
   const accepted = new Set([`mcp_servers.${serverName}`, `mcp_servers."${serverName}"`]);
   const index = headers.findIndex((match) => accepted.has(match[1].trim()));
   if (index < 0) throw new Error(`Could not find [mcp_servers.${serverName}] in Codex config`);
-
   const header = headers[index];
-  const sectionStart = header.index + header[0].length;
-  const sectionEnd = index + 1 < headers.length ? headers[index + 1].index : text.length;
+  return {
+    sectionStart: header.index + header[0].length,
+    sectionEnd: index + 1 < headers.length ? headers[index + 1].index : text.length
+  };
+}
+
+export function mcpSectionSettings(text, serverName) {
+  const { sectionStart, sectionEnd } = mcpSectionBounds(text, serverName);
+  const section = text.slice(sectionStart, sectionEnd);
+  const values = {};
+  for (const line of section.split(/\r?\n/)) {
+    const match = line.match(/^\s*([A-Za-z0-9_-]+)\s*=\s*(.*?)\s*(?:#.*)?$/);
+    if (!match) continue;
+    const [, key, raw] = match;
+    if (/^"(?:[^"\\]|\\.)*"$/.test(raw)) {
+      try { values[key] = JSON.parse(raw); } catch { values[key] = raw; }
+    } else if (raw === "true" || raw === "false") values[key] = raw === "true";
+    else if (/^-?\d+(?:\.\d+)?$/.test(raw)) values[key] = Number(raw);
+    else values[key] = raw;
+  }
+  return values;
+}
+
+export function patchMcpSection(text, serverName, settings) {
+  const { sectionStart, sectionEnd } = mcpSectionBounds(text, serverName);
   let section = text.slice(sectionStart, sectionEnd);
 
   for (const [key, value] of Object.entries(settings)) {
@@ -78,8 +100,14 @@ export async function configureCodexMcpSection() {
   const backup = `${file}.pro-architect.bak.${new Date().toISOString().replace(/[:.]/g, "-")}`;
   const temporary = `${file}.pro-architect.tmp.${process.pid}`;
   await copyFile(file, backup);
-  await writeFile(temporary, updated, { mode: fileStat.mode & 0o777 });
-  await rename(temporary, file);
+  await chmod(backup, fileStat.mode & 0o777).catch(() => {});
+  try {
+    await writeFile(temporary, updated, { mode: fileStat.mode & 0o777 });
+    await chmod(temporary, fileStat.mode & 0o777).catch(() => {});
+    await rename(temporary, file);
+  } finally {
+    await rm(temporary, { force: true }).catch(() => {});
+  }
   return { changed: true, file, backup, toolTimeoutSec };
 }
 

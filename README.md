@@ -211,11 +211,15 @@ The service is local and stdio-only. It does not open a TCP listener.
 Key controls:
 
 - repository root is resolved with Git and `realpath`;
-- absolute tool paths and lexical traversal are rejected;
-- symlink targets outside the repository are rejected;
-- file size, line count, output, search, tree, tool-round, timeout, and estimated-cost limits are enforced;
+- absolute tool paths, lexical traversal, symlink escapes, and Git object/path revision syntax are rejected;
+- common credential paths such as `.env`, private keys, cloud credentials, kubeconfig files, and Terraform state are denied across tree, read, search, status, diff, and history tools;
+- Git hooks, fsmonitor commands, external diff/text-conversion helpers, pagers, and repository attributes are neutralized for inspection commands;
+- provider credentials and generic secret-bearing environment variables are removed from child processes;
+- file size, line count, JSON-RPC message size, output, search, tree, tool-round, timeout, and estimated-cost limits are enforced;
+- MCP and inner repository-tool arguments are validated before paid work;
 - repository content is explicitly treated as untrusted prompt-injection data;
 - no write, patch, arbitrary command, network browsing, SSH, credential, or deployment tool is available to the inner Pro model;
+- non-completed Responses API results fail closed rather than returning a partial plan as success;
 - the API key is loaded from `OPENAI_API_KEY` or a user-only credentials file and is never returned by MCP tools;
 - MCP diagnostics go to stderr so stdout remains protocol-only.
 
@@ -244,18 +248,21 @@ Environment overrides:
 ## Development
 
 ```bash
-npm run check
-npm test
+npm ci
+npm run ci
 npm run pack:dry
+npm audit --omit=dev
 ```
 
-The tests cover:
+The focused suite covers:
 
-- MCP tool declarations;
-- repository inspection;
-- lexical traversal and symlink escape prevention;
-- token-cost accounting;
-- a complete mocked Responses API function-call loop.
+- real stdio MCP initialization, protocol negotiation, cancellation, input limits, and argument validation;
+- repository inspection, unusual filenames, deleted files, traversal/symlink defenses, sensitive-path filtering, and malicious Git configuration;
+- child-process credential stripping;
+- Responses API tool loops, encrypted reasoning replay, and fail-closed incomplete responses;
+- Codex TOML patching, configuration validation, usage-ledger recovery/permissions, and cost accounting.
+
+See [docs/VALIDATION.md](docs/VALIDATION.md) for the isolated setup test and live Codex acceptance procedure.
 
 ## Known limitations
 
@@ -263,6 +270,7 @@ The tests cover:
 - Setup edits only the existing `[mcp_servers.pro-architect]` section and creates a timestamped Codex config backup; unusual hand-written TOML layouts may require manual timeout configuration.
 - The MCP implementation targets the established newline-delimited stdio protocol used by Codex. Future MCP protocol revisions may require an adapter update.
 - Cost enforcement is reactive: it prevents additional API rounds after the configured estimate is exceeded, but cannot undo the cost of a request already completed.
+- The sensitive-path policy is defense in depth, not a complete secret scanner. Nonstandard secret filenames or secrets embedded in ordinary source files can still be sent to OpenAI. Review the repository before invoking paid tools.
 - Generated architecture is advisory. The user and outer Codex agent remain responsible for validation and implementation.
 - Linux and macOS are the initial targets; Windows path and global-install behavior need dedicated validation.
 

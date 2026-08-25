@@ -1,5 +1,5 @@
 import { loadApiKey, loadConfig } from "./config.js";
-import { createResponse, extractOutputText, functionCalls } from "./openai.js";
+import { createResponse, extractOutputText, functionCalls, responseOutputToInputItems } from "./openai.js";
 import { consultPrompt, planPrompt, reviewPrompt } from "./prompts.js";
 import { RepositoryInspector, resolveRepositoryRoot } from "./repository.js";
 import { REPOSITORY_TOOL_DEFINITIONS } from "./repository-tools.js";
@@ -79,6 +79,7 @@ export async function runArchitect(kind, input, { signal } = {}) {
           reasoning: { mode: "pro", effort, context: "all_turns" },
           text: { verbosity: "high" },
           max_output_tokens: maxOutputTokens,
+          include: ["reasoning.encrypted_content"],
           store: false
         },
         { signal, timeoutMs: config.requestTimeoutMs }
@@ -104,7 +105,7 @@ export async function runArchitect(kind, input, { signal } = {}) {
         );
       }
 
-      inputItems.push(...payload.output);
+      inputItems.push(...responseOutputToInputItems(payload.output));
       for (const call of calls) {
         let output;
         try {

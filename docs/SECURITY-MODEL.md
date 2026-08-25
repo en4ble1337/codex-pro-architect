@@ -38,7 +38,7 @@ Mitigations:
 - the resolved target must remain under the resolved Git root;
 - tests cover both `../` traversal and a symlink targeting an external file.
 
-### Command injection
+### Command injection and repository-configured execution
 
 Mitigations:
 
@@ -46,7 +46,9 @@ Mitigations:
 - local commands use `spawn` with `shell: false`;
 - command names are fixed in source;
 - user and model values are individual arguments after option delimiters where relevant;
-- revisions are syntax-restricted and cannot begin with `-`;
+- revisions are syntax-restricted, cannot begin with `-`, cannot use Git object/path syntax such as `HEAD:.env`, and must resolve to commits;
+- Git inspection overrides hooks, fsmonitor, external diff/textconv, pagers, and repository attribute helpers;
+- child processes receive a sanitized environment with provider credentials and generic secret variables removed;
 - subprocess time and output are bounded.
 
 ### Credential disclosure
@@ -57,9 +59,12 @@ Mitigations:
 - credentials are never placed in tool results or usage records;
 - status returns only a masked key fingerprint;
 - setup guidance avoids shell-history storage;
-- the repository has no API-key access function.
+- the repository has no API-key access function;
+- common secret-bearing repository paths are denied across tree, read, search, status, diff, and history tools;
+- `.env.example`, `.env.sample`, and `.env.template` remain inspectable as deliberate templates;
+- usage-directory and ledger permissions are repaired to `0700` and `0600`.
 
-Residual risk: any code executing as the same OS user can access that user's process environment or credentials file. Use a trusted workstation and account.
+Residual risk: path filtering is not a complete secret scanner. Secrets in nonstandard filenames or ordinary source files can still be transmitted. Any code executing as the same OS user can also access that user's process environment or credentials file. Use a trusted workstation and account.
 
 ### Unbounded API spend
 
@@ -74,6 +79,16 @@ Mitigations:
 
 Residual risk: the first request, or the request crossing the threshold, has already incurred cost. OpenAI billing and project-level budgets remain the hard control plane.
 
+### Partial or malformed protocol results
+
+Mitigations:
+
+- MCP inputs and inner tool arguments are structurally validated;
+- newline-delimited JSON-RPC messages have a maximum size;
+- active paid calls support MCP cancellation;
+- incomplete, failed, cancelled, or otherwise non-completed Responses API results fail closed;
+- replayable output preserves encrypted reasoning items required by stateless tool loops.
+
 ### Denial of service through large repositories
 
 Mitigations:
@@ -82,7 +97,7 @@ Mitigations:
 - file byte and line reads are capped;
 - search results and command output are capped;
 - binary files are rejected;
-- tool rounds and request duration are capped.
+- MCP message size, tool rounds, and request duration are capped.
 
 ## Non-goals
 

@@ -1,6 +1,6 @@
 {
   "name": "codex-pro-architect",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Invoke GPT-5.6 Pro as a read-only architecture specialist from Codex through a local MCP server and $pro-architect skill.",
   "type": "module",
   "bin": {

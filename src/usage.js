@@ -1,4 +1,4 @@
-import { appendFile, mkdir, readFile } from "node:fs/promises";
+import { appendFile, chmod, mkdir, readFile } from "node:fs/promises";
 import { getPaths } from "./config.js";
 
 export function emptyUsage() {
@@ -72,15 +72,31 @@ export function addRequestUsage(total, requestUsage, pricing) {
 export async function recordUsage(entry) {
   const { stateDir, usageFile } = getPaths();
   await mkdir(stateDir, { recursive: true, mode: 0o700 });
+  await chmod(stateDir, 0o700).catch(() => {});
   await appendFile(usageFile, `${JSON.stringify(entry)}\n`, { mode: 0o600 });
+  await chmod(usageFile, 0o600).catch(() => {});
   return usageFile;
+}
+
+export function parseUsageEntries(text, limit = 100) {
+  const bounded = Number.isInteger(limit) && limit > 0 ? limit : 100;
+  const parsed = [];
+  for (const line of String(text).split(/\r?\n/)) {
+    if (!line.trim()) continue;
+    try {
+      const entry = JSON.parse(line);
+      if (entry && typeof entry === "object" && !Array.isArray(entry)) parsed.push(entry);
+    } catch {
+      // A partial final write or manual edit must not make status/usage unusable.
+    }
+  }
+  return parsed.slice(-bounded);
 }
 
 export async function readUsageEntries(limit = 100) {
   const { usageFile } = getPaths();
   try {
-    const lines = (await readFile(usageFile, "utf8")).split(/\r?\n/).filter(Boolean);
-    return lines.slice(-Math.max(1, limit)).map((line) => JSON.parse(line));
+    return parseUsageEntries(await readFile(usageFile, "utf8"), limit);
   } catch (error) {
     if (error?.code === "ENOENT") return [];
     throw error;

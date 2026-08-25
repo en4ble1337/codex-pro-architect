@@ -38,3 +38,38 @@ test("accumulates request usage across a tool loop", () => {
   assert.equal(total.outputTokens, 3_000);
   assert.equal(total.estimatedCostUsd, 0.18);
 });
+
+test("skips malformed JSONL records while retaining valid usage", async () => {
+  const { parseUsageEntries } = await import("../src/usage.js");
+  const entries = parseUsageEntries(
+    '{"timestamp":"one","usage":{"estimatedCostUsd":1}}\nnot-json\n{"timestamp":"two","usage":{"estimatedCostUsd":2}}\n',
+    10
+  );
+  assert.deepEqual(entries.map((entry) => entry.timestamp), ["one", "two"]);
+});
+
+test("repairs usage directory and ledger permissions", async (t) => {
+  const { chmod, mkdtemp, stat, writeFile } = await import("node:fs/promises");
+  const { tmpdir } = await import("node:os");
+  const path = await import("node:path");
+  const { getPaths } = await import("../src/config.js");
+  const { recordUsage } = await import("../src/usage.js");
+
+  const root = await mkdtemp(path.join(tmpdir(), "pro-architect-usage-"));
+  const previous = process.env.XDG_STATE_HOME;
+  process.env.XDG_STATE_HOME = root;
+  t.after(() => {
+    if (previous === undefined) delete process.env.XDG_STATE_HOME;
+    else process.env.XDG_STATE_HOME = previous;
+  });
+
+  const paths = getPaths();
+  await recordUsage({ timestamp: "one", usage: {} });
+  await chmod(paths.stateDir, 0o755);
+  await chmod(paths.usageFile, 0o644);
+  await writeFile(paths.usageFile, '{"timestamp":"existing"}\n');
+  await recordUsage({ timestamp: "two", usage: {} });
+
+  assert.equal((await stat(paths.stateDir)).mode & 0o777, 0o700);
+  assert.equal((await stat(paths.usageFile)).mode & 0o777, 0o600);
+});
