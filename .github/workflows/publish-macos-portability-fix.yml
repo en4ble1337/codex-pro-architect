@@ -1,0 +1,56 @@
+name: Publish macOS portability fix
+
+on:
+  push:
+    branches:
+      - bootstrap/macos-portability-fix
+    paths:
+      - .github/workflows/publish-macos-portability-fix.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out patch bootstrap
+        uses: actions/checkout@v4
+
+      - name: Verify patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "ab8fed7b2f27edbb0a6f02e2dff472fc56cf998697fbbf1b18969a557c005755  bootstrap/macos-portability.patch" \
+            | sha256sum --check --strict
+
+      - name: Apply and validate code fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin review/security-hardening
+          git switch --detach origin/review/security-hardening
+          git switch -c review/security-hardening
+          git apply --check --exclude=.github/workflows/ci.yml bootstrap/macos-portability.patch
+          git apply --exclude=.github/workflows/ci.yml bootstrap/macos-portability.patch
+          npm ci
+          npm run ci
+          npm run pack:dry
+          npm audit --omit=dev
+
+      - name: Publish code fix to review branch
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git config user.name "Bart"
+          git config user.email "167246435+en4ble1337@users.noreply.github.com"
+          git add src/repository.js tests/repository.test.js
+          git commit -m "fix: canonicalize repository roots across platforms"
+          auth="$(printf 'x-access-token:%s' "${GH_TOKEN}" | base64 -w0)"
+          git -c http.extraheader="AUTHORIZATION: basic ${auth}" \
+            push \
+            "https://github.com/${GITHUB_REPOSITORY}.git" \
+            review/security-hardening:review/security-hardening
