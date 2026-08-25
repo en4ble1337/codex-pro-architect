@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, symlink, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, realpath, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { DEFAULT_CONFIG } from "../src/config.js";
@@ -23,7 +23,7 @@ async function fixture() {
 test("inspects a repository with read-only bounded tools", async () => {
   const fixtureRoot = await fixture();
   const root = await resolveRepositoryRoot(path.join(fixtureRoot, "src"));
-  assert.equal(root, fixtureRoot);
+  assert.equal(root, await realpath(fixtureRoot));
 
   const inspector = new RepositoryInspector(root, DEFAULT_CONFIG);
   const tree = await inspector.tree();
