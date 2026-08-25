@@ -1,0 +1,47 @@
+{
+  "name": "codex-pro-architect",
+  "version": "0.1.0",
+  "description": "Invoke GPT-5.6 Pro as a read-only architecture specialist from Codex through a local MCP server and $pro-architect skill.",
+  "type": "module",
+  "bin": {
+    "codex-pro-architect": "./src/cli.js"
+  },
+  "files": [
+    "src",
+    "scripts",
+    "docs",
+    ".agents",
+    "README.md",
+    "LICENSE",
+    "SECURITY.md",
+    "CONTRIBUTING.md",
+    "ACKNOWLEDGEMENTS.md"
+  ],
+  "scripts": {
+    "check": "node scripts/check.js",
+    "test": "node --test",
+    "ci": "npm run check && npm test",
+    "pack:dry": "npm pack --dry-run"
+  },
+  "engines": {
+    "node": ">=20.11"
+  },
+  "keywords": [
+    "codex",
+    "openai",
+    "mcp",
+    "architecture",
+    "reasoning",
+    "gpt-5.6"
+  ],
+  "author": "Bart / ChainSavvy",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/en4ble1337/codex-pro-architect.git"
+  },
+  "bugs": {
+    "url": "https://github.com/en4ble1337/codex-pro-architect/issues"
+  },
+  "homepage": "https://github.com/en4ble1337/codex-pro-architect#readme"
+}
