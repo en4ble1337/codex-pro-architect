@@ -1,0 +1,57 @@
+name: Publish Codex Pro Architect Alpha Release
+
+on:
+  workflow_run:
+    workflows: ["Record Codex Pro Architect Alpha V5 Status"]
+    types: [completed]
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Require successful V5 status and verified tree
+        run: |
+          set -euo pipefail
+          grep -F '**Conclusion:** `success`' docs/BOOTSTRAP-STATUS.md
+          test -f docs/RELEASE-VERIFICATION.md
+          test -f tests/mcp-cancellation.test.js
+          test "$(node -p "require('./package.json').version")" = "0.1.0-alpha.1"
+      - name: Retire publisher and create immutable prerelease
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git checkout -B main origin/main
+          rm -f .github/workflows/publish-alpha-release.yml
+          git add -A
+          git diff --cached --check
+          git commit -m "chore(release): retire one-use alpha publisher"
+          git push origin main
+
+          release_sha=$(git rev-parse HEAD)
+          if git ls-remote --exit-code origin refs/tags/v0.1.0-alpha.1 >/dev/null 2>&1; then
+            existing=$(git ls-remote origin refs/tags/v0.1.0-alpha.1 | cut -f1)
+            test "$existing" = "$release_sha"
+          else
+            git tag -a v0.1.0-alpha.1 -m "Codex Pro Architect v0.1.0-alpha.1"
+            git push origin v0.1.0-alpha.1
+          fi
+
+          if ! gh release view v0.1.0-alpha.1 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create v0.1.0-alpha.1 \
+              --repo "$GITHUB_REPOSITORY" \
+              --prerelease \
+              --verify-tag \
+              --title "Codex Pro Architect v0.1.0-alpha.1" \
+              --notes $'First public alpha.\n\n- Explicit `$pro-architect` Codex skill\n- Official GPT-5.6 Pro Responses API specialist\n- Stateless encrypted-reasoning replay\n- Bounded read-only repository inspection\n- Functional in-flight MCP cancellation\n- Cost and usage accounting\n- Launchpad governance and independent release review\n- Node.js 20/22 validation on Ubuntu and macOS\n- Clean packed global-install and installed MCP smoke\n\nNo live paid Pro API call was executed in CI; use a disposable repository and low cost ceiling for the first authorized provider test.'
+          fi
