@@ -1,0 +1,90 @@
+
+> codex-pro-architect@0.1.0 ci
+> npm run check && npm test
+
+
+> codex-pro-architect@0.1.0 check
+> node scripts/check.js
+
+Syntax check passed for 18 JavaScript files.
+
+> codex-pro-architect@0.1.0 test
+> node --test
+
+TAP version 13
+# Subtest: runs a Responses API function-call loop and returns a metered plan
+ok 1 - runs a Responses API function-call loop and returns a metered plan
+  ---
+  duration_ms: 238.811916
+  ...
+# Subtest: patches an existing MCP section without changing adjacent sections
+ok 2 - patches an existing MCP section without changing adjacent sections
+  ---
+  duration_ms: 1.209125
+  ...
+# Subtest: supports a quoted MCP server table
+ok 3 - supports a quoted MCP server table
+  ---
+  duration_ms: 0.099291
+  ...
+# Subtest: fails closed when the expected MCP section is absent
+ok 4 - fails closed when the expected MCP section is absent
+  ---
+  duration_ms: 0.292334
+  ...
+# Subtest: exposes explicit billable architect tools and a free status tool
+ok 5 - exposes explicit billable architect tools and a free status tool
+  ---
+  duration_ms: 2.395375
+  ...
+# Subtest: inspects a repository with read-only bounded tools
+not ok 6 - inspects a repository with read-only bounded tools
+  ---
+  duration_ms: 119.149375
+  location: '/Users/runner/work/codex-pro-architect/codex-pro-architect/tests/repository.test.js:23:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + '/private/var/folders/df/djsxfhc17x95674wsm_g8s980000gn/T/pro-architect-repo-oRapH0'
+    - '/var/folders/df/djsxfhc17x95674wsm_g8s980000gn/T/pro-architect-repo-oRapH0'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: '/var/folders/df/djsxfhc17x95674wsm_g8s980000gn/T/pro-architect-repo-oRapH0'
+  actual: '/private/var/folders/df/djsxfhc17x95674wsm_g8s980000gn/T/pro-architect-repo-oRapH0'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///Users/runner/work/codex-pro-architect/codex-pro-architect/tests/repository.test.js:26:10)
+    async Test.run (node:internal/test_runner/test:797:9)
+    async Test.processPendingSubtests (node:internal/test_runner/test:526:7)
+  ...
+# Subtest: rejects lexical traversal and symlink escapes
+ok 7 - rejects lexical traversal and symlink escapes
+  ---
+  duration_ms: 97.296875
+  ...
+# Subtest: estimates cached, cache-write, uncached, and output token cost
+ok 8 - estimates cached, cache-write, uncached, and output token cost
+  ---
+  duration_ms: 1.917792
+  ...
+# Subtest: uses standard rates below the long-context threshold
+ok 9 - uses standard rates below the long-context threshold
+  ---
+  duration_ms: 0.136125
+  ...
+# Subtest: accumulates request usage across a tool loop
+ok 10 - accumulates request usage across a tool loop
+  ---
+  duration_ms: 1.474833
+  ...
+1..10
+# tests 10
+# suites 0
+# pass 9
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 456.915375
