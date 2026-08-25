@@ -1,0 +1,77 @@
+name: Materialize Public Alpha V2
+
+on:
+  push:
+    branches: [launchpad-bootstrap]
+    paths:
+      - ".github/workflows/materialize-v2.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: launchpad-bootstrap
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Generate source and governance
+        run: |
+          python3 bootstrap/materialize_core.py
+          python3 bootstrap/materialize_docs.py
+          python3 bootstrap/fixup_install.py
+      - name: Harden packed skill path
+        run: |
+          mkdir -p skill
+          cp -a .agents/skills/pro-architect skill/pro-architect
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path('package.json')
+          data = json.loads(p.read_text())
+          if 'skill' not in data['files']:
+              data['files'].insert(1, 'skill')
+          p.write_text(json.dumps(data, indent=2) + '\n')
+          lock = Path('package-lock.json')
+          ldata = json.loads(lock.read_text())
+          lock.write_text(json.dumps(ldata, indent=2) + '\n')
+          install = Path('src/install.js')
+          text = install.read_text()
+          old = 'const source = path.join(PACKAGE_ROOT, ".agents", "skills", "pro-architect");'
+          new = 'const packaged = path.join(PACKAGE_ROOT, "skill", "pro-architect");\n  const source = fs.existsSync(packaged) ? packaged : path.join(PACKAGE_ROOT, ".agents", "skills", "pro-architect");'
+          if old not in text:
+              raise SystemExit('installer source marker not found')
+          install.write_text(text.replace(old, new))
+          PY
+      - name: Remove one-use bootstrap machinery
+        run: |
+          rm -rf bootstrap
+          rm -f .github/workflows/materialize.yml
+          rm -f .github/workflows/materialize-v2.yml
+          rm -f .github/workflows/fixup-install.yml
+      - name: Install and verify complete release gate
+        run: |
+          npm ci
+          python3 setup_launchpad.py --check
+          python3 execution/verify_setup.py
+          npm run ci
+          npm run smoke:package
+          npm run pack:dry
+          npm audit --omit=dev
+          npm ls --omit=dev
+      - name: Commit materialized public alpha
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "feat: publish Launchpad-governed Pro Architect alpha" -m "Refs: directive-003"
+          git push origin HEAD:launchpad-bootstrap
