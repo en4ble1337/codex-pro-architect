@@ -6,11 +6,12 @@ on:
   pull_request:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   test:
     strategy:
+      fail-fast: false
       matrix:
         node: [20, 22]
         os: [ubuntu-latest, macos-latest]
@@ -22,6 +23,39 @@ jobs:
           node-version: ${{ matrix.node }}
           cache: npm
       - name: Validate
-        run: npm run ci
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run ci 2>&1 | tee validation.log
+      - name: Publish macOS failure diagnostic
+        if: failure() && runner.os == 'macOS'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NODE_VERSION: ${{ matrix.node }}
+        run: |
+          set -euo pipefail
+          work="$(mktemp -d)"
+          cp validation.log "${work}/validation.log"
+          {
+            echo "runner.os=${RUNNER_OS}"
+            echo "runner.arch=${RUNNER_ARCH}"
+            echo "node=${NODE_VERSION}"
+            sw_vers
+            git --version
+            node --version
+            npm --version
+          } > "${work}/environment.txt"
+          cd "${work}"
+          git init --initial-branch=main
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add validation.log environment.txt
+          git commit -m "ci: capture macOS Node ${NODE_VERSION} failure"
+          auth="$(printf 'x-access-token:%s' "${GH_TOKEN}" | base64)"
+          git -c http.extraheader="AUTHORIZATION: basic ${auth}" \
+            push --force \
+            "https://github.com/${GITHUB_REPOSITORY}.git" \
+            HEAD:"ci-diagnostics-macos-node-${NODE_VERSION}"
       - name: Package manifest
         run: npm run pack:dry
